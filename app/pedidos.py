@@ -237,6 +237,9 @@ def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=50, delay_lote=0):
         df = df.head(max_linhas)
 
     n = len(df)
+    if n == 0:
+        st.error("A planilha está vazia após o processamento. Nenhum pedido a importar.")
+        return df
     latitudes = [None] * n
     longitudes = [None] * n
     progress_bar = st.progress(0, text="Buscando coordenadas...")
@@ -247,6 +250,8 @@ def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=50, delay_lote=0):
         from app.database import buscar_coordenada
         return buscar_coordenada(endereco)
     def processar_linha(i, row):
+        if i >= len(latitudes) or i >= len(longitudes):
+            return  # Protege contra acesso fora do limite
         lat = row.get('Latitude') # Pega Latitude da linha (planilha)
         lon = row.get('Longitude') # Pega Longitude da linha (planilha)
 
@@ -275,6 +280,8 @@ def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=50, delay_lote=0):
         fim = min(inicio + tamanho_lote, n)
         threads = []
         for i in range(inicio, fim):
+            if i >= len(df):
+                continue  # Protege contra acesso fora do limite
             row = df.iloc[i]
             t = threading.Thread(target=processar_linha, args=(i, row))
             threads.append(t)

@@ -237,16 +237,12 @@ def show():
                 if n == 0:
                     st.success("Todos os pedidos já possuem coordenadas!")
                 else:
-                    latitudes = df_pedidos['Latitude'].tolist()
-                    longitudes = df_pedidos['Longitude'].tolist()
                     progress_bar = st.progress(0, text="Buscando coordenadas...")
                     for idx, (i, row) in enumerate(pedidos_sem_coord.iterrows()):
                         lat, lon = obter_coordenadas(row['Endereço Completo'])
-                        latitudes[i] = lat
-                        longitudes[i] = lon
+                        df_pedidos.at[i, 'Latitude'] = lat
+                        df_pedidos.at[i, 'Longitude'] = lon
                         progress_bar.progress((idx + 1) / n, text=f"Buscando coordenadas... ({idx+1}/{n})")
-                    df_pedidos['Latitude'] = latitudes
-                    df_pedidos['Longitude'] = longitudes
                     progress_bar.empty()
                     salvar_pedidos(df_pedidos)
                     st.session_state.df_pedidos = df_pedidos.copy()
