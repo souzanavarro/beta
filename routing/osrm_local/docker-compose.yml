@@ -18,23 +18,23 @@ services:
     container_name: osrm_preprocess_sp # Nome do container atualizado
     volumes:
       - ./data:/data
-    # Sequência de comandos atualizada para processar o arquivo .osm.pbf de São Paulo
+    # Sequência de comandos atualizada para processar o arquivo .osm.pbf de Sudeste
     # 1. Extrair a rede de estradas para carros
     # 2. Particionar a rede (necessário para o algoritmo MLD)
     # 3. Customizar os dados particionados
-    # O resultado será o arquivo sao-paulo-latest.osrm e outros auxiliares na pasta ./data
+    # O resultado será o arquivo sudeste-latest.osrm e outros auxiliares na pasta ./data
     command: >
       bash -c "
-      if [ ! -f /data/sao-paulo-latest.osm.pbf ]; then
-          echo '--- ERRO: Arquivo /data/sao-paulo-latest.osm.pbf não encontrado. Faça o download do Geofabrik e coloque na pasta ./data ---'
+      if [ ! -f /data/sudeste-latest.osm.pbf ]; then
+          echo '--- ERRO: Arquivo /data/sudeste-latest.osm.pbf não encontrado. Faça o download do Geofabrik e coloque na pasta ./data ---'
           exit 1
       fi;
-      echo '--- Iniciando pré-processamento OSRM para São Paulo ---' &&
-      osrm-extract -p /opt/car.lua /data/sao-paulo-latest.osm.pbf &&
+      echo '--- Iniciando pré-processamento OSRM para Sudeste ---' &&
+      osrm-extract -p /opt/car.lua /data/sudeste-latest.osm.pbf &&
       echo '--- Extração concluída ---' &&
-      osrm-partition /data/sao-paulo-latest.osrm &&
+      osrm-partition /data/sudeste-latest.osrm &&
       echo '--- Particionamento concluído ---' &&
-      osrm-customize /data/sao-paulo-latest.osrm &&
+      osrm-customize /data/sudeste-latest.osrm &&
       echo '--- Customização concluída ---' &&
       echo '--- Pré-processamento OSRM concluído com sucesso! ---'
       "
