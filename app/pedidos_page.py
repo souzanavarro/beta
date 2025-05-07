@@ -167,6 +167,20 @@ def show():
         # Garante que a coluna Região seja string para evitar erro do Streamlit
         if "Região" in df_filtrado.columns:
             df_filtrado["Região"] = df_filtrado["Região"].astype(str)
+        # Geração automática do Cluster por Região (sem botão)
+        if (
+            'Latitude' in df_filtrado.columns
+            and 'Longitude' in df_filtrado.columns
+            and 'Região' in df_filtrado.columns
+        ):
+            from routing.utils import clusterizar_pedidos_por_regiao_ou_kmeans
+            n_clusters = 1
+            if 'frota' in st.session_state and st.session_state['frota'] is not None:
+                n_clusters = max(1, len(st.session_state['frota']))
+            if len(df_filtrado) > 1:
+                df_filtrado['Cluster'] = clusterizar_pedidos_por_regiao_ou_kmeans(df_filtrado, n_clusters=n_clusters)
+            else:
+                df_filtrado['Cluster'] = 0
         # Exibir apenas a planilha editável, sem duplicar visualização
         st.subheader("Editar Pedidos")
         df_editado = st.data_editor(
@@ -238,20 +252,6 @@ def show():
                     st.session_state.df_pedidos = df_pedidos.copy()
                     st.success("Coordenadas reprocessadas apenas para pedidos sem coordenadas!")
                     st.rerun()
-        # Botão para calcular/regenerar Cluster por agrupamento KMeans (mantém Região original)
-        if st.button("Gerar/Atualizar Cluster automaticamente", type="primary"):
-            if 'Latitude' in df_filtrado.columns and 'Longitude' in df_filtrado.columns:
-                from routing.utils import clusterizar_pedidos_por_regiao_ou_kmeans
-                n_clusters = 1
-                if 'frota' in st.session_state and st.session_state['frota'] is not None:
-                    n_clusters = max(1, len(st.session_state['frota']))
-                df_filtrado['Cluster'] = clusterizar_pedidos_por_regiao_ou_kmeans(df_filtrado, n_clusters=n_clusters)
-                st.session_state.df_pedidos.update(df_filtrado)
-                salvar_pedidos(st.session_state.df_pedidos)
-                st.success("Cluster dos pedidos atualizado automaticamente!")
-                st.rerun()
-            else:
-                st.warning("É necessário que os pedidos tenham Latitude e Longitude para gerar o Cluster automaticamente.")
         # Botão para atualizar janelas de tempo e tempo de serviço
         if st.button("Atualizar Janela de Início, Fim e Tempo de Serviço para todos", type="primary"):
             df['Janela Início'] = "06:00"
