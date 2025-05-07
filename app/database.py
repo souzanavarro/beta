@@ -118,6 +118,12 @@ def salvar_frota(df):
     })
     df.to_sql('frota', conn, if_exists='replace', index=False)
     conn.close()
+    # Salva também em CSV na pasta data
+    try:
+        csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'frota.csv')
+        df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+    except Exception as e:
+        logging.error(f'Erro ao salvar frota em CSV: {e}')
 
 def carregar_frota():
     conn = get_connection()
@@ -185,6 +191,12 @@ def salvar_pedidos(df):
         df['anomalia'] = df['Anomalia'].astype(int)
     df.to_sql('pedidos', conn, if_exists='replace', index=False)
     conn.close()
+    # Salva também em CSV na pasta data
+    try:
+        csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'pedidos.csv')
+        df.to_csv(csv_path, index=False, encoding='utf-8-sig')
+    except Exception as e:
+        logging.error(f'Erro ao salvar pedidos em CSV: {e}')
 
 def carregar_pedidos():
     conn = get_connection()

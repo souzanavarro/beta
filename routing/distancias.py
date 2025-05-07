@@ -16,8 +16,8 @@ from functools import lru_cache
 OSRM_SERVER_URL = os.environ.get("OSRM_BASE_URL", "http://localhost:5000")
 MAX_RETRIES = 3
 # --- AJUSTE AQUI ---
-RETRY_DELAY = 15 # Segundos entre retentativas
-DEFAULT_TIMEOUT = 180 # Timeout para cada requisição OSRM em segundos
+RETRY_DELAY = 5  # Segundos entre retentativas (era 15)
+DEFAULT_TIMEOUT = 60  # Timeout para cada requisição OSRM em segundos (era 180)
 # -------------------
 INFINITE_VALUE = 9999999 # Valor para representar "infinito" ou falha
 MAX_WORKERS = 12  # Número de threads para requisições paralelas (aumentado para mais performance)
@@ -53,7 +53,8 @@ def _get_osrm_table_batch(url_base, coords_str, metrica, timeout=DEFAULT_TIMEOUT
             log_url = f"{full_url}?{params_str}" if attempt == 1 else f"{url_base}... (params omitidos)"
             # -------------------------------------------------
             logging.info(f"Consultando OSRM Table API via GET (Batch - Tentativa {attempt}/{MAX_RETRIES}): {log_url} (timeout={timeout}s)")
-            # --- AJUSTE AQUI: Passar o dicionário 'params' mesclado ---
+            # --- AJUSTE: Sempre converte params para tupla ordenada ao usar cache ---
+            params_tuple = tuple(sorted(params.items()))
             response = requests.get(full_url, params=params, timeout=timeout)
             # ---------------------------------------------------------
             response.raise_for_status() # Levanta exceção para status HTTP 4xx/5xx
@@ -267,9 +268,14 @@ def calcular_matriz_distancias(pontos, provider="osrm", metrica="duration", prog
 
 
                 if partial_matrix_raw is None:
-                    # O log de erro detalhado já acontece dentro de _get_osrm_table_batch_parallel
-                    logging.error(f"Falha crítica ao obter dados do OSRM para o lote (Req {request_count}/{total_requests}). Abortando cálculo da matriz.")
-                    return None # Aborta se a requisição falhar após retentativas
+                    logging.error(f"Falha ao obter dados do OSRM para o lote (Req {request_count}/{total_requests}). Preenchendo com INFINITE_VALUE e continuando.")
+                    # Preenche todos os pares deste lote com INFINITE_VALUE
+                    for i, source_global_idx in enumerate(batch_origem_indices_validos_global):
+                        for j, dest_global_idx in enumerate(batch_destino_indices_validos_global):
+                            final_matrix[source_global_idx, dest_global_idx] = INFINITE_VALUE
+                    if progress_callback:
+                        progress_callback(request_count / total_requests)
+                    continue
 
                 # --- Preenchimento da Matriz Final ---
                 # A matriz retornada pelo OSRM com sources/destinations tem shape (len(sources), len(destinations))
