@@ -130,7 +130,7 @@ def salvar_coordenada_csv(cpf_cnpj, endereco_completo, latitude, longitude):
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     df.to_csv(csv_path, index=False)
 
-def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=20, delay_lote=5):
+def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=50, delay_lote=0):
     nome = arquivo.name if hasattr(arquivo, 'name') else str(arquivo)
     ext = os.path.splitext(nome)[-1].lower()
     if ext in ['.xlsx', '.xlsm']:

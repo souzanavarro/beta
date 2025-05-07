@@ -20,14 +20,15 @@ RETRY_DELAY = 15 # Segundos entre retentativas
 DEFAULT_TIMEOUT = 180 # Timeout para cada requisição OSRM em segundos
 # -------------------
 INFINITE_VALUE = 9999999 # Valor para representar "infinito" ou falha
-MAX_WORKERS = 4  # Número de threads para requisições paralelas
+MAX_WORKERS = 12  # Número de threads para requisições paralelas (aumentado para mais performance)
 
 # Configuração do logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Cache para resultados de requisições repetidas
 @lru_cache(maxsize=1000)
-def _cached_osrm_request(url, params):
+def _cached_osrm_request(url, params_tuple):
+    params = dict(params_tuple)
     response = requests.get(url, params=params, timeout=DEFAULT_TIMEOUT)
     response.raise_for_status()
     return response.json()
@@ -130,9 +131,11 @@ def _get_osrm_table_batch_parallel(url_base, coords_str, metrica, timeout=DEFAUL
         params.update(extra_params)
 
     full_url = f"{url_base}{coords_str}"
+    # Transforma params em tupla ordenada para ser hashable
+    params_tuple = tuple(sorted(params.items()))
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        future = executor.submit(_cached_osrm_request, full_url, params)
+        future = executor.submit(_cached_osrm_request, full_url, params_tuple)
         try:
             data = future.result()
             metric_key = f"{metrica}s"
@@ -196,7 +199,7 @@ def calcular_matriz_distancias(pontos, provider="osrm", metrica="duration", prog
     np.fill_diagonal(final_matrix, 0)
 
     # --- AJUSTE AQUI ---
-    max_coords_per_request = 15 # Reduzido de 20 para 15
+    max_coords_per_request = 50 # Aumentado para 50 para reduzir número de requisições
     # -------------------
     num_batches = (n + max_coords_per_request - 1) // max_coords_per_request
     batches = [list(range(i * max_coords_per_request, min((i + 1) * max_coords_per_request, n))) for i in range(num_batches)]

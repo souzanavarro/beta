@@ -164,6 +164,9 @@ def show():
         for col in ["Janela Início", "Janela Fim", "Tempo de Serviço"]:
             if col not in colunas_editor:
                 colunas_editor.append(col)
+        # Garante que a coluna Região seja string para evitar erro do Streamlit
+        if "Região" in df_filtrado.columns:
+            df_filtrado["Região"] = df_filtrado["Região"].astype(str)
         # Exibir apenas a planilha editável, sem duplicar visualização
         st.subheader("Editar Pedidos")
         df_editado = st.data_editor(
