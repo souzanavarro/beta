@@ -168,6 +168,8 @@ def processar_pedidos(arquivo, max_linhas=None):
         elif cidade:
             return cidade
         return ''
+
+    # Garante que a coluna Região seja criada logo após o carregamento e após qualquer limpeza
     if 'Cidade de Entrega' in df.columns:
         df['Região'] = df.apply(definir_regiao, axis=1)
     else:
@@ -228,18 +230,11 @@ def processar_pedidos(arquivo, max_linhas=None):
     if "Endereço Completo" in df.columns:
         df = df.dropna(subset=["Endereço Completo"])
 
-    # Região: usa cidade/bairro se só houver um pedido ou não houver coordenadas válidas
-    if len(df) == 1:
-        cidade = df.iloc[0].get("Cidade de Entrega", "")
-        bairro = df.iloc[0].get("Bairro de Entrega", "")
-        regiao = f"{bairro} - {cidade}" if bairro else cidade
-        df["Região"] = regiao if regiao.strip() else "Única Região"
-    elif df[["Latitude", "Longitude"]].dropna().empty:
-        # Nenhuma coordenada válida
-        df["Região"] = df["Cidade de Entrega"].fillna("")
-        df["Região"] = df["Bairro de Entrega"].fillna("") + " - " + df["Região"]
-        df["Região"] = df["Região"].str.strip(" -")
-        df["Região"] = df["Região"].replace("", "Região Desconhecida")
+    # Recalcula a coluna Região após limpeza para garantir consistência
+    if 'Cidade de Entrega' in df.columns:
+        df['Região'] = df.apply(definir_regiao, axis=1)
+    else:
+        df['Região'] = ''
 
     logging.info(f"Processamento finalizado. Linhas após limpeza: {len(df)}")
     return df

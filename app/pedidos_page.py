@@ -101,12 +101,7 @@ def show():
         if 'Janela de Descarga' in df.columns:
             df = df.drop(columns=['Janela de Descarga'])
         # --- Região baseada em coordenadas (agrupamento KMeans) ---
-        if 'Latitude' in df.columns and 'Longitude' in df.columns:
-            from routing.utils import clusterizar_pedidos_por_regiao_ou_kmeans
-            n_clusters = 1
-            if 'frota' in st.session_state and st.session_state['frota'] is not None:
-                n_clusters = max(1, len(st.session_state['frota']))
-            df['Região'] = clusterizar_pedidos_por_regiao_ou_kmeans(df, n_clusters=n_clusters)
+        # Removido agrupamento/clusterização de pedidos da tela de pedidos
         # Garantir que as colunas Regiao, Endereco Completo, Latitude e Longitude existam e estejam corretas
         if 'Endereço de Entrega' in df.columns and 'Bairro de Entrega' in df.columns and 'Cidade de Entrega' in df.columns:
             df['Endereço Completo'] = df['Endereço de Entrega'].astype(str) + ', ' + df['Bairro de Entrega'].astype(str) + ', ' + df['Cidade de Entrega'].astype(str)
