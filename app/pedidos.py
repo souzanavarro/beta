@@ -172,23 +172,17 @@ def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=50, delay_lote=0):
     # Não é mais necessário remover a coluna CPF/CNPJ, pois ela não será criada
     # --- Lógica de Endereço Ajustada ---
     # --- Garante colunas essenciais ---
-    # 1. Cria a coluna Região primeiro, usando as colunas originais
+    # 1. Cria a coluna Região ANTES de Endereço Completo, usando as regras solicitadas
     if 'Cidade de Entrega' in df.columns:
-        if 'Bairro de Entrega' not in df.columns:
-            df['Bairro de Entrega'] = ''
+        def definir_regiao(row):
+            cidade = str(row.get('Cidade de Entrega', '')).strip()
+            bairro = str(row.get('Bairro de Entrega', '')).strip()
+            if cidade.lower() == 'são paulo' and bairro:
+                return f"São Paulo - {bairro}"
+            return cidade
         df['Região'] = df.apply(definir_regiao, axis=1)
     else:
-        def regiao_fallback(row):
-            endereco = str(row.get('Endereço Completo', ''))
-            partes = [p.strip() for p in endereco.split(',') if p.strip()]
-            if len(partes) >= 2:
-                if 'são paulo' in partes[-2].lower() and len(partes) >= 3:
-                    return f"{partes[-3]} - São Paulo"
-                return partes[-2]
-            return 'N/A'
-        df['Região'] = df.apply(regiao_fallback, axis=1)
-        st.warning("Coluna 'Cidade de Entrega' não encontrada. 'Região' definida a partir do 'Endereço Completo' (pode ser impreciso).")
-
+        df['Região'] = ''
     # 2. Cria a coluna Endereço Completo (se não existir)
     if 'Endereço Completo' not in df.columns:
         colunas_endereco_necessarias = [
@@ -196,7 +190,6 @@ def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=50, delay_lote=0):
         ]
         colunas_faltantes = [col for col in colunas_endereco_necessarias if col not in df.columns]
         if not colunas_faltantes:
-            st.info("Coluna 'Endereço Completo' não encontrada. Criando a partir de 'Endereço de Entrega', 'Bairro', 'Cidade', 'Estado'.")
             df['Endereço Completo'] = (
                 df['Endereço de Entrega'].fillna('').astype(str) + ', ' +
                 df['Bairro de Entrega'].fillna('').astype(str) + ', ' +
@@ -205,7 +198,6 @@ def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=50, delay_lote=0):
             )
             df['Endereço Completo'] = df['Endereço Completo'].str.replace(r'^,\s*|,?\s*,\s*$', '', regex=True).str.strip()
             df['Endereço Completo'] = df['Endereço Completo'].str.replace(r'\s*,\s*,', ',', regex=True)
-            # 3. Remove colunas originais de endereço
             try:
                 df = df.drop(colunas_endereco_necessarias, axis=1)
             except KeyError:
@@ -311,13 +303,23 @@ def processar_pedidos(arquivo, max_linhas=None, tamanho_lote=50, delay_lote=0):
 
     df = df.dropna(subset=colunas_essenciais_dropna)
 
-    # --- Agrupamento automático por KMeans nas coordenadas ---
-    if 'Latitude' in df.columns and 'Longitude' in df.columns:
+    # --- Agrupamento automático por KMeans nas coordenadas, por Região ---
+    if 'Latitude' in df.columns and 'Longitude' in df.columns and 'Região' in df.columns:
         from routing.utils import clusterizar_pedidos_por_regiao_ou_kmeans
-        n_clusters = 1
-        if 'frota' in st.session_state and st.session_state['frota'] is not None:
-            n_clusters = max(1, len(st.session_state['frota']))
-        df['Cluster'] = clusterizar_pedidos_por_regiao_ou_kmeans(df, n_clusters=n_clusters)
+        clusters = []
+        regioes_unicas = df['Região'].dropna().unique()
+        for regiao in regioes_unicas:
+            mask = df['Região'] == regiao
+            n_clusters = 1
+            if 'frota' in st.session_state and st.session_state['frota'] is not None:
+                n_clusters = max(1, len(st.session_state['frota']))
+            clusters_regiao = clusterizar_pedidos_por_regiao_ou_kmeans(df[mask], n_clusters=n_clusters)
+            clusters_regiao = [int(c) if c != -1 else -1 for c in clusters_regiao]
+            clusters.extend(list(zip(df[mask].index, clusters_regiao)))
+        # Preenche a coluna Cluster com -1 por padrão
+        df['Cluster'] = -1
+        for idx, cluster in clusters:
+            df.at[idx, 'Cluster'] = cluster
 
     # Reorganizar colunas na ordem desejada (adapta se colunas não existirem)
     colunas_ordem_base = [
