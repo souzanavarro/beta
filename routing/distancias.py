@@ -8,19 +8,29 @@ import logging
 import json
 import traceback # Adicionado para log de erro completo
 import os # Adicionado para ler variáveis de ambiente
+from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 
 # --- Constantes ---
-# Use a variável de ambiente OSRM_BASE_URL se definida, senão usa o OSRM público
-OSRM_SERVER_URL = os.environ.get("OSRM_BASE_URL", "https://router.project-osrm.org")
+# Use a variável de ambiente OSRM_BASE_URL se definida, senão usa o OSRM local
+OSRM_SERVER_URL = os.environ.get("OSRM_BASE_URL", "http://localhost:5000")
 MAX_RETRIES = 3
 # --- AJUSTE AQUI ---
 RETRY_DELAY = 15 # Segundos entre retentativas
 DEFAULT_TIMEOUT = 180 # Timeout para cada requisição OSRM em segundos
 # -------------------
 INFINITE_VALUE = 9999999 # Valor para representar "infinito" ou falha
+MAX_WORKERS = 4  # Número de threads para requisições paralelas
 
 # Configuração do logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Cache para resultados de requisições repetidas
+@lru_cache(maxsize=1000)
+def _cached_osrm_request(url, params):
+    response = requests.get(url, params=params, timeout=DEFAULT_TIMEOUT)
+    response.raise_for_status()
+    return response.json()
 
 # --- AJUSTE AQUI: Adicionar extra_params=None ---
 def _get_osrm_table_batch(url_base, coords_str, metrica, timeout=DEFAULT_TIMEOUT, extra_params=None):
@@ -112,6 +122,27 @@ def _get_osrm_table_batch(url_base, coords_str, metrica, timeout=DEFAULT_TIMEOUT
     # Se o loop terminar (todas as tentativas falharam), retorna None
     logging.error(f"Falha ao obter dados do OSRM após {MAX_RETRIES} tentativas. Última exceção: {last_exception}")
     return None
+
+# Paralelização das requisições
+def _get_osrm_table_batch_parallel(url_base, coords_str, metrica, timeout=DEFAULT_TIMEOUT, extra_params=None):
+    params = {"annotations": metrica}
+    if extra_params:
+        params.update(extra_params)
+
+    full_url = f"{url_base}{coords_str}"
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        future = executor.submit(_cached_osrm_request, full_url, params)
+        try:
+            data = future.result()
+            metric_key = f"{metrica}s"
+            if metric_key not in data:
+                logging.error(f"Resposta OSRM não contém a chave esperada '{metric_key}'. Resposta: {data}")
+                return None
+            return data[metric_key]
+        except Exception as e:
+            logging.error(f"Erro na requisição paralela OSRM: {e}")
+            return None
 
 # --- Funções de Validação Adicionadas ---
 def _is_valid_coord(value):
@@ -227,13 +258,13 @@ def calcular_matriz_distancias(pontos, provider="osrm", metrica="duration", prog
                 params_com_indices = {"sources": sources_param, "destinations": destinations_param}
 
                 # --- AJUSTE AQUI: Usar extra_params ---
-                # Chama a função _get_osrm_table_batch passando a URL base e os parâmetros extras
-                partial_matrix_raw = _get_osrm_table_batch(url_base, batch_coords_str, metrica, timeout=DEFAULT_TIMEOUT, extra_params=params_com_indices)
+                # Chama a função _get_osrm_table_batch_parallel passando a URL base e os parâmetros extras
+                partial_matrix_raw = _get_osrm_table_batch_parallel(url_base, batch_coords_str, metrica, timeout=DEFAULT_TIMEOUT, extra_params=params_com_indices)
                 # --------------------------------------
 
 
                 if partial_matrix_raw is None:
-                    # O log de erro detalhado já acontece dentro de _get_osrm_table_batch
+                    # O log de erro detalhado já acontece dentro de _get_osrm_table_batch_parallel
                     logging.error(f"Falha crítica ao obter dados do OSRM para o lote (Req {request_count}/{total_requests}). Abortando cálculo da matriz.")
                     return None # Aborta se a requisição falhar após retentativas
 
