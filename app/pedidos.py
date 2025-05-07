@@ -159,14 +159,16 @@ def processar_pedidos(arquivo, max_linhas=None):
         st.error("A planilha está vazia após o processamento.")
         return df
 
-    # 1. Cria a coluna Região ANTES de Endereço Completo, usando cidade/bairro
-    if 'Cidade de Entrega' in df.columns:
-        def definir_regiao(row):
-            cidade = str(row.get('Cidade de Entrega', '')).strip()
-            bairro = str(row.get('Bairro de Entrega', '')).strip()
-            if cidade.lower() == 'são paulo' and bairro:
-                return f"{bairro} - São Paulo"
+    # 1. Cria a coluna Região usando cidade/bairro conforme solicitado
+    def definir_regiao(row):
+        cidade = str(row.get('Cidade de Entrega', '')).strip()
+        bairro = str(row.get('Bairro de Entrega', '')).strip()
+        if cidade.lower() == 'são paulo' and bairro:
+            return f"{bairro} - São Paulo"
+        elif cidade:
             return cidade
+        return ''
+    if 'Cidade de Entrega' in df.columns:
         df['Região'] = df.apply(definir_regiao, axis=1)
     else:
         df['Região'] = ''
