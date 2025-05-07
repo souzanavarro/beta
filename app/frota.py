@@ -27,11 +27,6 @@ def processar_frota(arquivo):
     df['Capacidade (Kg)'] = pd.to_numeric(df['Capacidade (Kg)'], errors='coerce').fillna(0)
     # Remove placas proibidas
     df = df[~df['Placa'].astype(str).isin(PLACAS_PROIBIDAS)]
-    # Remove colunas antigas/desnecessárias
-    if 'Descricao' in df.columns:
-        df = df.drop(columns=['Descricao'])
-    if 'Veiculos' in df.columns:
-        df = df.drop(columns=['Veiculos'])
     # Verifica duplicidade de placas
     if df['Placa'].duplicated().any():
         placas_duplicadas = df[df['Placa'].duplicated(keep=False)]['Placa'].unique()
@@ -40,7 +35,7 @@ def processar_frota(arquivo):
     df['Disponível'] = df['Disponível'].astype(str).str.lower().isin(['sim', 'yes', '1', 'true'])
     # Reorganizar colunas na ordem desejada
     colunas_ordem = [
-        "Placa", "Transportador", "Descrição", "Descrição Veículo", "Veículo",
+        "Placa", "Transportador", "Descrição Veículo",
         "Capacidade (Cx)", "Capacidade (Kg)", "Disponível", "Regiões Preferidas"
     ]
     for col in colunas_ordem:

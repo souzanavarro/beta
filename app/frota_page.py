@@ -100,9 +100,9 @@ def show():
     if not df.empty:
         df = df.loc[:, ~df.columns.duplicated()]
         df.columns = [str(col) if col else f"Coluna_{i}" for i, col in enumerate(df.columns)]
-        # Remove colunas de janela de tempo se existirem
-        for col in ['Janela Início', 'Janela Fim']:
-            if col in df.columns:
+        # Remove colunas duplicadas e as colunas extras indesejadas
+        for col in ['Janela Início', 'Janela Fim', 'Descrição', 'Veículo']:
+            if col in df.columns and col not in colunas_cabecalho:
                 df = df.drop(columns=[col])
         # Garante a existência das colunas do cabeçalho
         colunas_cabecalho = [
