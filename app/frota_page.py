@@ -104,6 +104,16 @@ def show():
         for col in ['Janela Início', 'Janela Fim']:
             if col in df.columns:
                 df = df.drop(columns=[col])
+        # Garante a existência das colunas do cabeçalho
+        colunas_cabecalho = [
+            'Placa', 'Transportador', 'Descrição Veículo', 'Capacidade (Cx)',
+            'Capacidade (Kg)', 'Disponível', 'Regiões Preferidas'
+        ]
+        for col in colunas_cabecalho:
+            if col not in df.columns:
+                df[col] = ''
+        outras_colunas = [c for c in df.columns if c not in colunas_cabecalho]
+        df = df[[*colunas_cabecalho, *outras_colunas]]
         # Campo para selecionar veículo
         placa_col = 'Placa' if 'Placa' in df.columns else None
         veiculo_sel = None

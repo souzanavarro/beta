@@ -1,0 +1,11 @@
+# Configuração para múltiplos bancos de dados
+# Para SQLite, apenas DB_NAME é necessário
+# Para outros bancos (PostgreSQL, MySQL), configure os demais campos
+[database]
+DB_TYPE = "sqlite"  # Opções: "sqlite", "postgresql", "mysql"
+DB_NAME = "wazelog.db"  # Para SQLite, é o nome do arquivo. Para outros, é o nome do banco
+DB_PATH = "database/"  # Caminho do arquivo SQLite (opcional, pode ser usado para customizar)
+DB_HOST = "localhost"  # Usado para PostgreSQL/MySQL
+DB_PORT = 5432         # Usado para PostgreSQL/MySQL
+DB_USERNAME = "orlando"  # Usado para PostgreSQL/MySQL
+DB_TOKEN = "Picole2024@"       # Usado para PostgreSQL/MySQL

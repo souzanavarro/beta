@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-PLACAS_PROIBIDAS = {"FLB1111", "FLB2222", "FLB3333", "FLB4444", "FLB5555", "FLB6666", "FLB7777", "FLB888", "FLB9999"}
+PLACAS_PROIBIDAS = {"FLB1111", "FLB2222", "FLB3333", "FLB4444", "FLB5555", "FLB6666", "FLB7777", "FLB8888", "FLB9999"}
 
 def processar_frota(arquivo):
     # Detecta o formato do arquivo
@@ -35,8 +35,11 @@ def processar_frota(arquivo):
     df['Disponível'] = df['Disponível'].astype(str).str.lower().isin(['sim', 'yes', '1', 'true'])
     # Reorganizar colunas na ordem desejada
     colunas_ordem = [
-        "Placa", "Transportador", "Descrição", "Veículo",
-        "Capacidade (Cx)", "Capacidade (Kg)", "Disponível"
+        "Placa", "Transportador", "Descrição", "Descrição Veículo", "Veículo",
+        "Capacidade (Cx)", "Capacidade (Kg)", "Disponível", "Regiões Preferidas"
     ]
+    for col in colunas_ordem:
+        if col not in df.columns:
+            df[col] = ''
     df = df[[col for col in colunas_ordem if col in df.columns]]
     return df

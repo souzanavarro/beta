@@ -84,6 +84,25 @@ A maneira mais fácil de iniciar todos os componentes do Wazelog (Servidor OSRM,
    python -m streamlit run app/app.py --server.port 8501
    ```
 
+## ℹ️ Configuração via config.toml
+- Agora é possível configurar as credenciais do banco de dados no arquivo `config.toml` na raiz do projeto. Exemplo:
+
+```toml
+[database]
+DB_USERNAME = "orlando"
+DB_TOKEN = "Picole2024@"
+DB_HOST = "localhost"
+DB_NAME = "wazelog"
+```
+- Para ler essas configurações no Python, utilize a biblioteca `toml`:
+
+```python
+import toml
+config = toml.load("config.toml")
+db_user = config["database"]["DB_USERNAME"]
+db_pass = config["database"]["DB_TOKEN"]
+```
+
 ## 🗂️ Estrutura de Pastas
 - `app/` - Código principal do Streamlit e módulos auxiliares
 - `database/` - Banco SQLite local

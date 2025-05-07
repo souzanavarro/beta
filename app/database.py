@@ -2,8 +2,13 @@ import sqlite3
 import pandas as pd
 import os
 import logging
+import toml
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'database', 'wazelog.db')
+# Carrega configurações do banco a partir do config.toml
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), '..', 'config.toml')
+config = toml.load(CONFIG_PATH)
+db_config = config.get('database', {})
+DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'database', db_config.get('DB_NAME', 'wazelog.db'))
 
 # Conexão e criação das tabelas
 
@@ -20,6 +25,8 @@ def init_db():
         placa TEXT,
         transportador TEXT,
         descricao TEXT,
+        descricao_veiculo TEXT,
+        regioes_preferidas TEXT,
         veiculo TEXT,
         capacidade_cx INTEGER,
         capacidade_kg REAL,
@@ -101,6 +108,8 @@ def salvar_frota(df):
         'Placa': 'placa',
         'Transportador': 'transportador',
         'Descrição': 'descricao',
+        'Descrição Veículo': 'descricao_veiculo',
+        'Regiões Preferidas': 'regioes_preferidas',
         'Veículo': 'veiculo',
         'Capacidade (Cx)': 'capacidade_cx',
         'Capacidade (Kg)': 'capacidade_kg',
@@ -120,6 +129,8 @@ def carregar_frota():
             'placa': 'Placa',
             'transportador': 'Transportador',
             'descricao': 'Descrição',
+            'descricao_veiculo': 'Descrição Veículo',
+            'regioes_preferidas': 'Regiões Preferidas',
             'veiculo': 'Veículo',
             'capacidade_cx': 'Capacidade (Cx)',
             'capacidade_kg': 'Capacidade (Kg)',
