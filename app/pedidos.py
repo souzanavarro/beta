@@ -18,20 +18,13 @@ OPENCAGE_KEYS = [
 key_cycle = itertools.cycle(OPENCAGE_KEYS)
 
 def definir_regiao(row):
-    cidade = str(row.get("Cidade de Entrega", "")).strip()
-    bairro = str(row.get("Bairro de Entrega", "")).strip()
-    if cidade.lower() == "são paulo" and bairro:
+    cidade = str(row.get('Cidade de Entrega', '') or '').strip()
+    bairro = str(row.get('Bairro de Entrega', '') or '').strip()
+    if cidade.lower() == 'são paulo' and bairro:
         return f"{bairro} - São Paulo"
     elif cidade:
         return cidade
-    # fallback: tenta extrair do endereço completo
-    endereco = str(row.get("Endereço Completo", ""))
-    partes = [p.strip() for p in endereco.split(",") if p.strip()]
-    if len(partes) >= 2:
-        if "são paulo" in partes[-2].lower() and len(partes) >= 3:
-            return f"{partes[-3]} - São Paulo"
-        return partes[-2]
-    return "N/A"
+    return 'Região Desconhecida'
 
 def obter_coordenadas_opencage(endereco):
     key = next(key_cycle)
@@ -159,23 +152,24 @@ def processar_pedidos(arquivo, max_linhas=None):
         st.error("A planilha está vazia após o processamento.")
         return df
 
-    # 1. Cria a coluna Região usando cidade/bairro conforme solicitado
+    # 1. Normaliza nomes das colunas para evitar problemas de leitura
+    df.columns = [str(col).strip() for col in df.columns]
+
+    # 2. Cria a coluna Região usando cidade/bairro conforme solicitado
     def definir_regiao(row):
-        cidade = str(row.get('Cidade de Entrega', '')).strip()
-        bairro = str(row.get('Bairro de Entrega', '')).strip()
+        cidade = str(row.get('Cidade de Entrega', '') or '').strip()
+        bairro = str(row.get('Bairro de Entrega', '') or '').strip()
         if cidade.lower() == 'são paulo' and bairro:
             return f"{bairro} - São Paulo"
         elif cidade:
             return cidade
-        return ''
-
-    # Garante que a coluna Região seja criada logo após o carregamento e após qualquer limpeza
+        return 'Região Desconhecida'
     if 'Cidade de Entrega' in df.columns:
         df['Região'] = df.apply(definir_regiao, axis=1)
     else:
-        df['Região'] = ''
+        df['Região'] = 'Região Desconhecida'
 
-    # 2. Cria a coluna Endereço Completo (se não existir)
+    # 3. Cria a coluna Endereço Completo (se não existir)
     if 'Endereço Completo' not in df.columns:
         colunas_endereco_necessarias = [
             'Endereço de Entrega', 'Bairro de Entrega', 'Cidade de Entrega', 'Estado de Entrega'
@@ -234,7 +228,7 @@ def processar_pedidos(arquivo, max_linhas=None):
     if 'Cidade de Entrega' in df.columns:
         df['Região'] = df.apply(definir_regiao, axis=1)
     else:
-        df['Região'] = ''
+        df['Região'] = 'Região Desconhecida'
 
     logging.info(f"Processamento finalizado. Linhas após limpeza: {len(df)}")
     return df
