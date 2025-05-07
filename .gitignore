@@ -172,3 +172,4 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+/workspaces/beta/routing/osrm_local/data
